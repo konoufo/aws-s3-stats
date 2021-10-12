@@ -48,15 +48,18 @@ class S3Cli:
             last_modified = None
             count = 0
             size = 0
+            cost = 0
             for last in bucket.objects.all():
-                print('storage_class', last.storage_class)
+                # print('storage_class', last.storage_class)
                 count += 1
                 size += last.size
+                cost += self.s3_controller.compute_cost(last)
                 last_modified = min(last_modified, last.last_modified) if last_modified is not None else last.last_modified
             if last_modified is not None:
                 last_modified = last_modified.strftime(DATE_FORMAT)
             size = convert_size_to(size, self.size_unit)
-            print([bucket.name, count, size, creation_date, last_modified])
+            print('cost', cost)
+            print([bucket.name, count, size, round(cost / 1e5, 2), creation_date, last_modified])
         if bucket is None:
             print('Aucun bucket à afficher.')
 
