@@ -25,8 +25,9 @@ class S3Cli:
         self.display_buckets()
     
     def display_buckets(self):
-        for i in self.s3_controller.list():
-            creation_date = i.creation_date.strftime(DATE_FORMAT)
+        bucket = None
+        for bucket in self.s3_controller.list_buckets():
+            creation_date = bucket.creation_date.strftime(DATE_FORMAT)
             last_modified = None
             count = 0
             size = 0

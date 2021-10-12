@@ -11,5 +11,5 @@ class Bucket:
         )
         self.s3 = session.resource('s3')
     
-    def list(self):
+    def list_buckets(self):
         return self.s3.buckets.all()
