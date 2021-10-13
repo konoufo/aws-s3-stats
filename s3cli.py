@@ -31,10 +31,19 @@ def convert_size_to(size_in_bytes, size_unit, precision=2):
     return round(size_in_bytes / SIZE_UNITS.compute_bytes(size_unit), precision)
 
 
+# todo: argument size_unit should ignore case
 class S3Cli:
+    col_widths = (22, 7, 10, 7, 17, 17)
     parser = argparse.ArgumentParser('Client d\'analyse pour AWS S3')
     parser.add_argument('--size-unit', default=SIZE_UNITS.KB, choices=SIZE_UNITS.choices)
     s3_controller = bucket.Bucket()
+
+    def __init__(self):
+        self.size_unit = SIZE_UNITS.KB
+
+    @property
+    def headers(self):
+        return ['BUCKET', 'COUNT', f'SIZE ({self.size_unit})', 'COST', 'CREATION DATE', 'LAST CHANGE']
 
     def run(self):
         args = self.parser.parse_args()
@@ -43,6 +52,7 @@ class S3Cli:
     
     def display_buckets(self):
         bucket = None
+        self._display_row(self.headers)
         for bucket in self.s3_controller.list_buckets():
             creation_date = bucket.creation_date.strftime(DATE_FORMAT)
             last_modified = None
@@ -58,10 +68,18 @@ class S3Cli:
             if last_modified is not None:
                 last_modified = last_modified.strftime(DATE_FORMAT)
             size = convert_size_to(size, self.size_unit)
-            print('cost', cost)
-            print([bucket.name, count, size, round(cost / 1e5, 2), creation_date, last_modified])
+            self._display_row([bucket.name, str(count), str(size), str(round(cost / 1e5, 2)), creation_date, last_modified])
+
         if bucket is None:
             print('Aucun bucket à afficher.')
+
+    def _display_row(self, info_list):
+        assert len(info_list) == len(self.col_widths), f'Incorrect number of items in row: {info_list}'
+        row_format = ' '.join(f'{{:<{w}}}' for w in self.col_widths)
+        print(
+            row_format.format(*(info if len(info) <= width else f'{info[:width - 3]}...'
+                                    for (info, width) in zip(info_list, self.col_widths)))
+        )
 
 
 if __name__ == '__main__':
