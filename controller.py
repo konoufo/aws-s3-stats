@@ -28,7 +28,8 @@ class Pricing:
         STANDARD_IA: 1250,
         ONEZONE_IA: 1000,
         GLACIER: 400,
-        DEEP_ARCHIVE: 99
+        DEEP_ARCHIVE: 99,
+        REDUCED_REDUNDANCY: 2640
     }
 
     storage_choices = prices.keys()
