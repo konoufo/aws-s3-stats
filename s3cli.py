@@ -1,7 +1,8 @@
 import argparse
+from collections import defaultdict
 import sys
 
-import bucket
+import controller
 
 
 DATE_FORMAT = '%Y-%m-%dT%H:%M'
@@ -33,10 +34,30 @@ def convert_size_to(size_in_bytes, size_unit, precision=2):
 
 # todo: argument size_unit should ignore case
 class S3Cli:
+    """CLI to display S3 buckets stats"""
     col_widths = (22, 7, 10, 7, 17, 17)
-    parser = argparse.ArgumentParser('Client d\'analyse pour AWS S3')
-    parser.add_argument('--size-unit', default=SIZE_UNITS.KB, choices=SIZE_UNITS.choices)
-    s3_controller = bucket.Bucket()
+    parser = argparse.ArgumentParser('Display AWS S3 Buckets Information')
+    parser.add_argument('--size-unit', default=SIZE_UNITS.KB, choices=SIZE_UNITS.choices,
+                        help='Unit to display file size in.')
+    parser.add_argument('--group-by', default=None, choices=('region'),
+                        help='Attribute to group buckets by.')
+    s3_controller = controller.S3()
+
+    class GROUP:
+        """Enum for grouping choices"""
+        REGION = 'region'
+
+        @staticmethod
+        def get_region(bucket_name):
+            return S3Cli.s3_controller.get_region(bucket_name)
+
+        @classmethod
+        def get(cls, group_key):
+            return cls.funcs[group_key]
+
+    GROUP.funcs = {
+        GROUP.REGION: GROUP.get_region
+    }
 
     def __init__(self):
         self.size_unit = SIZE_UNITS.KB
@@ -46,31 +67,61 @@ class S3Cli:
         return ['BUCKET', 'COUNT', f'SIZE ({self.size_unit})', 'COST', 'CREATION DATE', 'LAST CHANGE']
 
     def run(self):
+        """Entry-point to launch everything"""
         args = self.parser.parse_args()
         self.size_unit = args.size_unit
-        self.display_buckets()
-    
+        self.group_by = self.GROUP.get(args.group_by) if args.group_by is not None else None
+        if self.group_by is None:
+            self.display_buckets()
+        else:
+            self.display_by_region()
+
+    def get_bucket_info(self, bucket):
+        creation_date = bucket.creation_date.strftime(DATE_FORMAT)
+        last_modified = None
+        count = 0
+        size = 0
+        cost = 0
+        for last in bucket.objects.all():
+            # print('storage_class', last.storage_class)
+            count += 1
+            size += last.size
+            cost += self.s3_controller.compute_cost(last)
+            last_modified = max(last_modified, last.last_modified) if last_modified is not None else last.last_modified
+        return controller.BucketInfo(bucket.name, count, size, cost, creation_date, last_modified)
+
     def display_buckets(self):
         bucket = None
         self._display_row(self.headers)
         for bucket in self.s3_controller.list_buckets():
-            creation_date = bucket.creation_date.strftime(DATE_FORMAT)
-            last_modified = None
-            count = 0
-            size = 0
-            cost = 0
-            for last in bucket.objects.all():
-                # print('storage_class', last.storage_class)
-                count += 1
-                size += last.size
-                cost += self.s3_controller.compute_cost(last)
-                last_modified = min(last_modified, last.last_modified) if last_modified is not None else last.last_modified
-            if last_modified is not None:
-                last_modified = last_modified.strftime(DATE_FORMAT)
-            size = convert_size_to(size, self.size_unit)
-            self._display_row([bucket.name, str(count), str(size), str(round(cost / 1e5, 2)), creation_date, last_modified])
+            info = self.get_bucket_info(bucket)
+            info.last_modified = info.last_modified.strftime(DATE_FORMAT) if info.last_modified is not None else ''
+            info.size = convert_size_to(info.size, self.size_unit)
+            info.cost = round(info.cost / 1e5, 2)
+            self._display_row(info.as_list())
 
         if bucket is None:
+            print('Aucun bucket à afficher.')
+
+    def display_by_region(self):
+        self._display_row(self.headers)
+
+        groups = defaultdict(controller.BucketInfo)
+        for bucket in self.s3_controller.list_buckets():
+            info = self.get_bucket_info(bucket)
+            region = self.group_by(info.name)
+            groups[region].count += info.count
+            groups[region].size += info.size
+            groups[region].cost += info.cost
+            groups[region].last_modified = max(groups[region].last_modified, info.last_modified)
+        for name, group in groups.items():
+            group.name = name
+            group.last_modified = group.last_modified.strftime(DATE_FORMAT)
+            group.size = convert_size_to(group.size, self.size_unit)
+            group.cost = round(group.cost / 1e5, 2)
+            self._display_row(group.as_list())
+
+        if not len(groups.keys()):
             print('Aucun bucket à afficher.')
 
     def _display_row(self, info_list):
