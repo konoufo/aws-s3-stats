@@ -5,6 +5,7 @@ import math
 
 import boto3
 import boto3.session
+import botocore.exceptions
 
 import settings
 
@@ -49,8 +50,14 @@ class S3:
         self.s3 = session.resource('s3')
         self.get_bucket_objects = self._get_bucket_objects
 
-    def list_buckets(self, **filters):
-        return self.s3.buckets.filter(**filters)
+    def list_buckets(self, name=None, **filters):
+        buckets = self.s3.buckets.filter(**filters)
+        if name is not None:
+            buckets = [self.s3.Bucket(name)]
+            resp = self.session.client('s3').head_bucket(Bucket=name)
+            if resp['ResponseMetadata']['HTTPStatusCode'] != 200:
+                buckets = []
+        return buckets
 
     def get_bucket_info(self, bucket, **filters):
         creation_date = bucket.creation_date.strftime(settings.DATE_FORMAT)

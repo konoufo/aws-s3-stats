@@ -42,6 +42,8 @@ class S3Cli:
                         help='Unit to display file size in.')
     parser.add_argument('--group-by', default=None, choices=('region',),
                         help='Attribute to group buckets by.')
+    parser.add_argument('--bucket-name', default='', help='Only show bucket with given name.')
+    parser.add_argument('--object-prefix', default='', help='Filter included objects by key prefix e.g "bucket/foo/bar".')
     s3_controller = controller.S3()
 
     class GROUP:
@@ -64,6 +66,8 @@ class S3Cli:
         self.size_unit = SIZE_UNITS.KB
         self.get_bucket_objects = self.s3_controller.get_bucket_objects
         self.get_group_key = None
+        self.bucket_filters = {}
+        self.object_filters = {}
 
     @property
     def headers(self):
@@ -83,11 +87,13 @@ class S3Cli:
         self.size_unit = args.size_unit
         self.get_group_key = self.GROUP.get(args.group_by) if args.group_by is not None else None
         self.get_bucket_objects = self.s3_controller.get_bucket_objects
+        self.bucket_filters['name'] = args.bucket_name
+        self.object_filters['Prefix'] = args.object_prefix
 
     def display_buckets(self):
         bucket = None
-        for bucket in self.s3_controller.list_buckets():
-            info = self.s3_controller.get_bucket_info(bucket)
+        for bucket in self.s3_controller.list_buckets(**self.bucket_filters):
+            info = self.s3_controller.get_bucket_info(bucket, **self.object_filters)
             info.last_modified = info.last_modified.strftime(DATE_FORMAT) if info.last_modified is not None else ''
             info.size = convert_size_to(info.size, self.size_unit)
             info.cost = round(info.cost / 1e5, 2)
@@ -100,7 +106,7 @@ class S3Cli:
         assert self.get_group_key is not None, 'run() must be called first.'
 
         groups = defaultdict(controller.BucketInfo)
-        for bucket in self.s3_controller.list_buckets():
+        for bucket in self.s3_controller.list_buckets(**self.bucket_filters):
             info = self.get_bucket_info(bucket)
             region = self.get_group_key(info.name)
             groups[region].count += info.count
