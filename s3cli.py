@@ -51,13 +51,13 @@ def bucket_info_format(info, size_unit=SIZE_UNITS.KB):
 class S3Cli:
     """CLI to display S3 buckets stats"""
     col_widths = (22, 7, 10, 7, 17, 17, 24)
-    parser = argparse.ArgumentParser('Display AWS S3 Buckets Information')
+    parser = argparse.ArgumentParser('Display Your AWS S3 Buckets Statistics.')
     parser.add_argument('--size-unit', default=SIZE_UNITS.KB, choices=SIZE_UNITS.choices,
-                        help='Unit to display file size in.')
+                        help='Size unit to display file size in.')
     parser.add_argument('--group-by', default=None, choices=('region',),
-                        help='Attribute to group buckets by.')
-    parser.add_argument('--bucket-name', default=None, help='Only show bucket with given name.')
-    parser.add_argument('--object-prefix', default='', help='Filter included objects by key prefix e.g "bucket/foo/bar".')
+                        help='Group buckets by a given attribute.')
+    parser.add_argument('--bucket-name', default=None, help='Show bucket with given name.')
+    parser.add_argument('--object-prefix', default='', help='Filter objects to be included in  by key prefix.')
 
     class GROUPFactory:
         """Enum for grouping choices"""
