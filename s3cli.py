@@ -58,30 +58,27 @@ class S3Cli:
                         help='Attribute to group buckets by.')
     parser.add_argument('--bucket-name', default=None, help='Only show bucket with given name.')
     parser.add_argument('--object-prefix', default='', help='Filter included objects by key prefix e.g "bucket/foo/bar".')
-    s3_controller = controller.S3()
 
-    class GROUP:
+    class GROUPFactory:
         """Enum for grouping choices"""
         REGION = 'region'
 
-        @staticmethod
-        def get_region(bucket_name):
-            return S3Cli.s3_controller.get_region(bucket_name)
+        def __init__(self, funcs):
+            self.funcs = funcs
 
-        @classmethod
-        def get(cls, group_key):
-            return cls.funcs[group_key]
+        def get(self, group_key):
+            return self.funcs[group_key]
 
-    GROUP.funcs = {
-        GROUP.REGION: GROUP.get_region
-    }
-
-    def __init__(self):
+    def __init__(self, s3_controller=None):
+        self.s3_controller = s3_controller or controller.S3()
         self.size_unit = SIZE_UNITS.KB
         self.get_bucket_objects = self.s3_controller.get_bucket_objects
         self.get_group_key = None
         self.bucket_filters = {}
         self.object_filters = {}
+        self.GROUP = self.GROUPFactory({
+            self.GROUPFactory.REGION: self.s3_controller.get_region
+        })
 
     @property
     def headers(self):
@@ -119,7 +116,7 @@ class S3Cli:
 
         groups = defaultdict(controller.BucketInfo)
         for bucket in self.s3_controller.list_buckets(**self.bucket_filters):
-            info = self.get_bucket_info(bucket)
+            info = self.s3_controller.get_bucket_info(bucket)
             region = self.get_group_key(info.name)
             groups[region].count += info.count
             groups[region].size += info.size

@@ -1,0 +1,8 @@
+{
+    "STANDARD": 2300,
+    "STANDARD_IA": 1250,
+    "ONEZONE_IA": 1000,
+    "GLACIER": 400,
+    "DEEP_ARCHIVE": 99,
+    "REDUCED_REDUNDANCY": 2640
+}

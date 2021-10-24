@@ -45,13 +45,13 @@ class Pricing:
 
 
 class S3:
-    def __init__(self):
-        self.session = session = boto3.session.Session(
+    def __init__(self, aws_session=None, s3_resource=None):
+        self.session = aws_session or boto3.session.Session(
             aws_access_key_id='',
             aws_secret_access_key='',
             aws_session_token=''
         )
-        self.s3 = session.resource('s3')
+        self.s3 = s3_resource or self.session.resource('s3')
         self.get_bucket_objects = self._get_bucket_objects
 
     def list_buckets(self, name=None, **filters):
@@ -108,12 +108,13 @@ class S3:
 
 class BucketInfo:
     UTC = datetime.datetime(1, 1, 1, tzinfo=datetime.timezone.utc)
+    UTC_MAX = datetime.datetime(datetime.MAXYEAR, 11, 30, tzinfo=datetime.timezone.utc)
     DEFAULT_STORAGE_COUNT = lambda: OrderedDict((
         (Pricing.STANDARD, 0),
         (Pricing.STANDARD_IA, 0),
         (Pricing.REDUCED_REDUNDANCY, 0)
     ))
-    def __init__(self, name=0, count=0, size=0, cost=0, creation_date=None, last_modified=UTC,
+    def __init__(self, name=0, count=0, size=0, cost=0, creation_date=UTC_MAX, last_modified=UTC,
                  storage_count=DEFAULT_STORAGE_COUNT()):
         self.infos = OrderedDict((
             ('name', name),
