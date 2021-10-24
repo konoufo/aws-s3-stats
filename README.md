@@ -15,14 +15,16 @@ pip install -r requirements.txt
 Make sure your AWS credentials are set up in your environment as usual. If you use `awscli`, you should be alright without further configuration.
 
 Let's assume the following bucket structure:
->appbucket/
->├─ bar/
->│  ├─ robots.txt
->├─ index.html
->foobucket/
->├─ bar/
->│  ├─ star.txt
->├─ victor.jpg
+```
+appbucket/
+├─ bar/
+│ ├─ robots.txt
+├─ index.html
+foobucket/
+├─ bar/
+│ ├─ star.txt
+├─ victor.jpg
+```
 
 To get information from all buckets:
 ```bash
