@@ -41,6 +41,7 @@ def bucket_info_format(info, size_unit=SIZE_UNITS.KB):
         controller.Pricing.REDUCED_REDUNDANCY: 'RR'
     }
     info.last_modified = info.last_modified.strftime(DATE_FORMAT)
+    info.creation_date = info.creation_date.strftime(DATE_FORMAT)
     info.size = convert_size_to(info.size, size_unit)
     info.cost = round(info.cost / 1e5, 2)
     info.storage_count = ','.join(f'{label}:{info.storage_count[s]}' for (s, label) in storage_labels.items())
@@ -124,6 +125,7 @@ class S3Cli:
             for s in info.storage_count:
                 groups[region].storage_count[s] += info.storage_count[s]
             groups[region].last_modified = max(groups[region].last_modified, info.last_modified)
+            groups[region].creation_date = min(groups[region].creation_date, info.creation_date)
         for name, group in groups.items():
             group.name = name
             group = bucket_info_format(group, size_unit=self.size_unit)

@@ -69,7 +69,7 @@ class S3:
             (Pricing.STANDARD_IA, 0),
             (Pricing.REDUCED_REDUNDANCY, 0)
         ))
-        creation_date = bucket.creation_date.strftime(settings.DATE_FORMAT)
+        creation_date = bucket.creation_date
         last_modified = None
         count = 0
         size = 0
